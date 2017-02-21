@@ -1,0 +1,80 @@
+\section{Using bounded model checking for coverage analysis of safety-critical software in an industrial setting \cite{angeletti2010}}
+
+This paper proposes a new way of test case generation with the purpose of guaranteeing 100\% branch coverage. The way that constraint-based solving is used for test case generation
+is based on symbolic execution, where path conditions are gathered and solved by a solver
+to generate a series of possible input vectors. This approach usually fails on dealing with non-linearity, which makes it less practical for the industrial settings.
+The idea of \cite{angeletti2010} is to use BMC for test case generation.
+First, authors introduce a procedure for converting a subset of ANSI-C into a Boolean
+formula in Conjunctive Normal Form w.r.t. a given depth for BMC. So, it means that loops are unwound according to the depth.
+
+Here, there must be a specified property. Figure \ref{fig:testing-bmc} shows the process.
+Program is seen by its control flow graph. To generate a test
+that aims to cover a given block under test, the negation of the property
+is added into the block, and then it is model checked. For model checking use the CBMC tool.
+In other words, to generate a test that covers all the branches of a given function $f$,
+the negation of the property is added to each basic block of $f$ as one new assertion at a time.
+So, $f$ with $n$ basic blocks need $n$ runs of CMBC, and for each run the
+depth of model checking may increase if needed. For each run, CMBC starts with depth $k = 1$,
+then if it cannot find a counter example (test case), then $k$ is increased. Each time
+that $k$ increases, a new code transformation and instrumentation is required.
+The process stops when 100\% decision coverage is achieved.
+To check that, a coverage analysis is performed using Cantata. if the
+coverage score is not yet 100\% then $k$ is incremented
+and test generation is repeated again.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{p1.png}
+  \caption{process of testing with BMC}\label{fig:testing-bmc}
+\end{figure}
+
+They evaluated their method by an experiment on an industrial project, called EVC, with more than 100,000 lines of code. The experiment has been conducted on 5 modules of the project with 10,000 lines of code.  Then, the goal was to generate automatic
+tests on the five modules of the EVC.
+In terms of performance, results were compared
+with manual test generation by a domain expert for 100\% coverage. The experimental results reports the idea is quite efficient and
+can significantly reduce the testing effort.
+
+\section{Convergence testing in term-level bounded model checking \cite{bryant2003convergence}}
+They proposed a new way of formalizing convergence and 
+then a procedure for checking if BMC would converge or not. 
+The method for checking \emph{property}, to me, is the same as $k$-induction though. 
+They call it $k$-convergence. But, the goal of the paper is to \emph{determine whether a system is $k$-convergent for some
+value of $k$}. They formulated ``convergence'' into second-order logic with quantifiers. 
+Then, since the problem is undecidable in general, they proposed two method for checking it: 
+(1) eliminating quantifiers and transform the formula into 
+first-order equations (then I'm not sure what method they used for verifying the new formula). 
+(2) they proposed an incomplete procedure to check their initial formulation in second-order logic (which I didn't get into its detail).
+
+My questions:
+\begin{itemize}
+  \item is it practical? 
+  \item why do we need to formulate convergence? 
+  All we need to check is if the property is valid. 
+  So, I can think of ``convergence'' as a way of proving a property. 
+\end{itemize}
+
+\section{Verification with small and short worlds \cite{sinha2012verification}}
+Idea: Apply one-induction on the property, if it doesn't pass, 
+then compute an abstract model and verify the abstract model.
+Obviously model can be abstracted in many different ways. After that, if property is valid on the abstract model, it means it will be valid on the original model. But, if property fails on abstraction, it could be either abstraction is not good enough, or property is not valid in general, which is the same initial problem we want to address with PDR, I think. We start with a very general model, then refine it in each frame w.r.t. the counterexample. Anyways, here the goal is not to refine the abstraction though. After abstraction, they  try  to  find  a  bound
+$k$ on  the  reachability  diameter  of  the abstract model (or  small  world).  
+they call the BMC-checking of the small world the
+“short world” method, since it relies on computing a ``short''
+bound  for  BMC.   The overall method is called ``Small-Short-World (S^2W)''.
+
+The  main contribution is  a  set  of  heuristics  for  creating  an
+abstract model and computing a bound on the reachability
+diameter of its state space.
+
+My thoughts:
+\begin{itemize}
+  \item This is basically another verification method, which is to me pretty much similar to the idea behind PDR.
+  \item But the interesting thing which could be helpful to me and I need to look at closely is 
+  the way bound $k$ is computed. If computing this bound or reachability diameter is easy, it could help us...
+\end{itemize}
+
+
+
+\section{Enhancing Symbolic Execution with Veritesting \cite{avgerinos2014}}
+
+
