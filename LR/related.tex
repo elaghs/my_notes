@@ -2,7 +2,8 @@
 
 This paper proposes a new way of test case generation with the purpose of guaranteeing 100\% branch coverage. The way that constraint-based solving is used for test case generation
 is based on symbolic execution, where path conditions are gathered and solved by a solver
-to generate a series of possible input vectors. This approach usually fails on dealing with non-linearity, which makes it less practical for the industrial settings.
+to generate a series of possible input vectors. This approach usually fails on dealing with non-linearity, which
+makes it less practical for the industrial settings.
 The idea of \cite{angeletti2010} is to use BMC for test case generation.
 First, authors introduce a procedure for converting a subset of ANSI-C into a Boolean
 formula in Conjunctive Normal Form w.r.t. a given depth for BMC. So, it means that loops are unwound according to the depth.
@@ -24,7 +25,7 @@ and test generation is repeated again.
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{p1.png}
+  \includegraphics[width=\textwidth]{.\\figs\\p1.png}
   \caption{process of testing with BMC}\label{fig:testing-bmc}
 \end{figure}
 
@@ -57,15 +58,75 @@ My questions:
 \section{Verification with small and short worlds \cite{sinha2012verification}}
 Idea: Apply one-induction on the property, if it doesn't pass,
 then compute an abstract model and verify the abstract model.
-Obviously model can be abstracted in many different ways. After that, if property is valid on the abstract model, it means it will be valid on the original model. But, if property fails on abstraction, it could be either abstraction is not good enough, or property is not valid in general, which is the same initial problem we want to address with PDR, I think. We start with a very general model, then refine it in each frame w.r.t. the counterexample. Anyways, here the goal is not to refine the abstraction though. After abstraction, they  try  to  find  a  bound
+Obviously model can be abstracted in many different ways. After that, if property is valid on the abstract model, it means it will be valid on the original model. But, if property fails on abstraction, it could be either abstraction is not good enough, or property is not valid in general, which is the same initial problem we want to address with PDR, I think. We start with a very general model, then refine it in each frame w.r.t. the counterexample. 
+
+Anyways, here the goal is not to refine the abstraction though. After abstraction (i.e. computing a small world), they  try  to  find  a  bound
 $k$ on  the  reachability  diameter  of  the abstract model (or  small  world).
 they call the BMC-checking of the small world the
 ``short world'' method, since it relies on computing a ``short''
-bound  for  BMC.   The overall method is called ``Small-Short-World $(S^2W)$''.
+bound  for  BMC.   The overall method is called ``Small-Short-World $(S^2W)$''. 
+I think the key idea here is that computing the reachability diameter of the abstract model 
+is more plausible. So approach could be practical.
 
 The  main contribution is  a  set  of  heuristics  for  creating  an
 abstract model and computing a bound on the reachability
-diameter of its state space.
+diameter of its state space. 
+Note that here we don't know the validity of the property, unlike IVCs, and want to
+ abstract the model. These heuristics are supposed to compute an abstraction such that:
+\begin{itemize}
+  \item its reachability diameter is short and easy enough to compute
+  \item it doesn't lead to superior counterexamples that are not applicable to the original model
+\end{itemize}
+
+\subsection{heuristics for computing a small world}
+While verifying safety properties, the property has the general form of $\forall X. \Phi (X)$, where $X$ is a vector of variables $x_1 \dotfill x_n$. If we can 
+instantiate $X$ with an arbitrary symbolic vaule making $\Phi$ $true$, then it means $\Phi$ has been proved. 
+From this idea, the vector $X$ is instantiated with symbolic vector $A$, then 
+a dependence set $U$ is computed for $\Phi (A)$. Basically, $U$ is a set of expressions 
+(or part of the transition relation) containing state variables and the parameters in $A$ such that 
+fixing their values make $\Phi$ become $true$. A way to compute $U$ is to first represent 
+the expression graph of $\Phi$ in terms of state and input variables, then (after simplification) syntactically derive expressions  
+by traversing that graph. In that way, all parts of the transition relation that are not in the $U$ 
+become $true$ in the small world, which means all the variables are not in $U$ to be non-deterministic in each execution step. 
+
+This is like when we choose to unconstrain some of the equations in the LUSTRE program by making them input and constructing an abstract version of the original program.
+
+\subsection{heuristics for computing the short world}
+First they formalized the notion of diameter reachability on p. 4, then said since it's hard to compute 
+they're gonna propose two following heuristics:
+
+\textbf{the sub-sequent heuristic} 
+
+In this heuristic, they define a sub-sequence criterion that whenever satisfied means that the original reachability diameter criterion is satisfied as well.
+
+\textbf{the gadget heuristic}
+
+the original reachability diameter criterion has an existential quantifier saying for dimater $D$ and
+ every state $s$ that is reachable after $D$ step, there is some step $i \le D + 1$ such 
+ that $s_i = s$. The gadget heuristic tries to instantiate the existential quantified variables. 
+ 
+ A gadget is a small sequence of state transitions that generates some subset of all reachable
+system states. Then there is this notion of ``universal gadget set'', which is a set of gadgets that together can generate all the reachable states. 
+The
+length
+$k$
+of  the  longest  gadget  in  the  universal  gadget  set  is
+then an upper bound on the diameter of the system (no proof is provided for this claim though).
+
+This method is kind of interesting. Gadgets are built \textit{manually} as follows:
+
+\begin{enumerate}
+  \item Variables in the property are instantiated by symbolic values, and $\forall$ quantifier in the 
+  property goes away. 
+  \item Then  possible  end-state  valuations
+for the system’s state variables in $U$ are enumerated. Here, the property structure is simplified; depending on the boolean decisions in the property, decisions are replaced with their possible outcome and
+different end-states are computed. 
+\item After that, it should be figured out how we can reach from initial states to the reachable end-states. In this way, the universal gadget set is obtained from which the diameter is computed.
+\end{enumerate}
+
+\linebreak
+\linebreak
+
 
 \emph{reachability diameter}: visiting all
 reachable states, the minimum number of steps being the
@@ -78,12 +139,20 @@ model, or the longest path in the set of minimal paths to any reachable state.
 \linebreak
 My thoughts:
 \begin{itemize}
+  \item I kind of like the formalization in this paper. It exactly matches what we can have for a LUSTRE program
   \item This is basically another verification method, which is to me pretty much similar to the idea behind PDR.
   \item But the interesting thing which could be helpful to me and I need to look at closely is
   the way bound $k$ is computed. If computing this bound or reachability diameter is easy, it could help us...
-  \item is diameter different from $k$ when a property is $k$-inductive?
+  \item if we can automate the computation of the universal gadget set then we'll have a very effective way of proving properties, don't we??? I think with smt solving we can automate that
+  \item so question is that how expensive is to build the universal gadget set? If we can have the diameter, we can set the boundary for BVC extraction. 
+  \item what would be the universal set for an undecidable problem (a property that we know is impossible to prove or disprove)?
+  \item is diameter different from $k$ when a property is $k$-inductive
 
 \end{itemize}
+
+
+\section {ymbolic software model validation \cite{sturton2013symbolic}}
+
 
 
 \section{Beyond vacuity: towards the strongest passing formula \cite{chockler2013beyond}}
@@ -145,5 +214,4 @@ falsity coverage: does the mutant FSM still satisfy the property?
 vacuity coverage: if the mutant FSM still satisfies the property, does it satisfy it vacuously?
 
 \section{Enhancing Symbolic Execution with Veritesting \cite{avgerinos2014}}
-
 
